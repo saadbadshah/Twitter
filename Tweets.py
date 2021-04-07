@@ -4,7 +4,7 @@ import tweepy as tweepy
 import nltk
 import pandas as pd
 import string
-
+from textblob import TextBlob
 print(string.punctuation)
 
 class Get_Tweets():
@@ -36,26 +36,45 @@ class Get_Tweets():
 
         #Raw tweets
         Rawtweets = pd.DataFrame(data=[tweet.text for tweet in tweets], columns=['Raw_Tweets'])
+
+        Rawtweets['Polarity'] = Rawtweets["Raw_Tweets"].apply(self.txtblob_polarity)
         print(Rawtweets)
+        print(" ")
 
         tweets = tweepy.Cursor(api.user_timeline, screen_name=user).items(10)
+
         #Clean Tweets
         Cleantweets = pd.DataFrame(data=[tweet.text for tweet in tweets], columns=['Clean_Tweet'])
-        Cleantweets['Clean_Tweet'] = Cleantweets['Clean_Tweet'].apply(self.tokenize_tweets).apply(self.remove_special_char)
+        Cleantweets['Clean_Tweet'] = Cleantweets['Clean_Tweet'].apply(self.cleaning_tweets)
+
+        Cleantweets['Polarity'] = Cleantweets['Clean_Tweet'].apply(self.txtblob_polarity)
         print(Cleantweets)
+
 
         return tweets
 
-    stop_words = nltk.corpus.stopwords.words("english")
+
     def tokenize_tweets(self, tweets):
-        #tokenize_sentence = nltk.tokenize.sent_tokenize(tweets)
+
         tokenize_words = nltk.tokenize.word_tokenize(tweets)
         return tokenize_words
 
 
-    def remove_stopwords(self, tweets):
+    def nltk_polarity(self, tweets):
+
         # removing stop words
-        tweeet = [sword for sword in tweets if sword not in self.stop_words]
+        tweeet = ""#[sword for sword in tweets if sword not in self.stop_words]
+        return tweeet
+
+    def txtblob_polarity(self, tweets):
+
+        return TextBlob(tweets).sentiment.polarity
+
+
+    def remove_stopwords(self, tweets):
+        stop_words = nltk.corpus.stopwords.words("english")
+        # removing stop words
+        tweeet = [sword for sword in tweets if sword not in stop_words]
         return tweeet
 
     def remove_special_char(self, tweets):
