@@ -5,7 +5,8 @@ import nltk
 import pandas as pd
 import string
 from textblob import TextBlob
-print(string.punctuation)
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+nltk.downloader.download('vader_lexicon')
 
 class Get_Tweets():
     def __init__(self):
@@ -30,7 +31,7 @@ class Get_Tweets():
         search_words = "#wildfires" + " -filter:retweets"
         date_since = "2021-01-1"
         api = self.connect()
-        user = "danawhite"
+        user = "TheNotoriousMMA"
 
         tweets = tweepy.Cursor(api.user_timeline, screen_name=user).items(10)
 
@@ -48,8 +49,9 @@ class Get_Tweets():
         Cleantweets['Clean_Tweet'] = Cleantweets['Clean_Tweet'].apply(self.cleaning_tweets)
 
         Cleantweets['Polarity'] = Cleantweets['Clean_Tweet'].apply(self.txtblob_polarity)
-        print(Cleantweets)
-
+        Cleantweets['Polarity_Vader'] = Cleantweets['Clean_Tweet'].apply(self.nltk_polarity)
+       # print(Cleantweets)
+        print(Cleantweets.to_string())
 
         return tweets
 
@@ -62,9 +64,7 @@ class Get_Tweets():
 
     def nltk_polarity(self, tweets):
 
-        # removing stop words
-        tweeet = ""#[sword for sword in tweets if sword not in self.stop_words]
-        return tweeet
+        return SentimentIntensityAnalyzer().polarity_scores(tweets)
 
     def txtblob_polarity(self, tweets):
 
