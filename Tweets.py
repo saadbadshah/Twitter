@@ -33,54 +33,59 @@ class Get_Tweets():
         api = self.connect()
         user = "TheNotoriousMMA"
 
-        tweets = tweepy.Cursor(api.user_timeline, screen_name=user).items(10)
+        query = "Proper12"
+        tweets = tweepy.Cursor(api.user_timeline,api.search,screen_name=user, q=query).items(20)
 
         #Raw tweets
         Rawtweets = pd.DataFrame(data=[tweet.text for tweet in tweets], columns=['Raw_Tweets'])
 
-        Rawtweets['Polarity'] = Rawtweets["Raw_Tweets"].apply(self.txtblob_polarity)
-        print(Rawtweets)
+        Rawtweets['Polarity_txtblob'] = Rawtweets["Raw_Tweets"].apply(self.txtblob_polarity)
+        Rawtweets['Polarity_vader'] = Rawtweets["Raw_Tweets"].apply(self.nltk_polarity)
+        print(Rawtweets.to_string())
         print(" ")
 
-        tweets = tweepy.Cursor(api.user_timeline, screen_name=user).items(10)
+        tweets = tweepy.Cursor(api.user_timeline, screen_name=user).items(20)
 
         #Clean Tweets
         Cleantweets = pd.DataFrame(data=[tweet.text for tweet in tweets], columns=['Clean_Tweet'])
-        Cleantweets['Clean_Tweet'] = Cleantweets['Clean_Tweet'].apply(self.cleaning_tweets)
+        Cleantweets['Clean_Tweet'] = Cleantweets['Clean_Tweet'].apply(self.cleaning_tweets).apply(self.tokenize_tweets)
+        Cleantweets['Clean_Tweet'] = Cleantweets['Clean_Tweet'].apply(self.remove_stopwords).apply(self.remove_special_char)
 
         Cleantweets['Polarity'] = Cleantweets['Clean_Tweet'].apply(self.txtblob_polarity)
         Cleantweets['Polarity_Vader'] = Cleantweets['Clean_Tweet'].apply(self.nltk_polarity)
-       # print(Cleantweets)
+
         print(Cleantweets.to_string())
 
         return tweets
 
 
-    def tokenize_tweets(self, tweets):
-
-        tokenize_words = nltk.tokenize.word_tokenize(tweets)
-        return tokenize_words
-
 
     def nltk_polarity(self, tweets):
-
+        #tweets = ' '.join(tweets)
         return SentimentIntensityAnalyzer().polarity_scores(tweets)
 
     def txtblob_polarity(self, tweets):
-
+        #tweets = ' '.join(tweets)
         return TextBlob(tweets).sentiment.polarity
 
+
+    def tokenize_tweets(self, tweets):
+        tokenize_words = nltk.tokenize.word_tokenize(tweets)
+        return tokenize_words
 
     def remove_stopwords(self, tweets):
         stop_words = nltk.corpus.stopwords.words("english")
         # removing stop words
+
         tweeet = [sword for sword in tweets if sword not in stop_words]
-        return tweeet
+        tweet = ' '.join(tweeet)
+        return tweet
 
     def remove_special_char(self, tweets):
         # removing stop words
         tweeet = [schars for schars in tweets if schars not in string.punctuation]
-        return tweeet
+        tweet = ''.join(tweeet)
+        return tweet
 
     def cleaning_tweets(self, txt):
         # Remove mentions
