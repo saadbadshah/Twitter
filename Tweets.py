@@ -1,3 +1,4 @@
+
 import re
 
 import tweepy as tweepy
@@ -14,9 +15,10 @@ nltk.download('punkt')
 pd.set_option('use_inf_as_na', True)
 class Get_Tweets():
     def __init__(self):
-
         self.import_tweets()
-
+        self.raw_tweets()
+        self.clean_tweets()
+        self.search_tweets()
 
     def connect(self):
         consumer_key = 'Ckf73BSAwbZuyjNQeDAVaxiRJ'
@@ -30,111 +32,57 @@ class Get_Tweets():
         return api
 
     def import_tweets(self):
-        # Define the search term and the date_since date as variables
-
-        date_since = input("enter the date from which u want the tweets i.e (2021-01-1)")
-        date_to = input("enter the date till which u want the tweets i.e (2021-01-1)")
+        user = 'TheStreet'
         api = self.connect()
-        user = input("Enter the Twitter you want tweets from: ")
+        tweets = tweepy.Cursor(api.user_timeline, screen_name=user).items(5)
+
+        return tweets
 
 
-        numoftweets = int(input("Enter the number of tweets you want: "))
+    def makingdf(self, firstColum):
+        tweets = self.import_tweets()
+        StockTweets = pd.DataFrame(data=[tweet.text for tweet in tweets], columns=[firstColum])
 
+        return StockTweets
 
-        tweets = tweepy.Cursor(api.user_timeline,since=date_since,until=date_to,screen_name=user, ).items(numoftweets)
+    def raw_tweets(self):
+        raw_tweets = self.makingdf('Raw_Tweets')
+        raw_tweets['TxtBlob'] = raw_tweets['Raw_Tweets'].apply(self.txtblob_polarity)
+        raw_tweets['Nltk'] = raw_tweets['Raw_Tweets'].apply(self.nltk_polarity)
 
+        print(raw_tweets.to_string())
 
+    def clean_data(self,clean_tweets):
+        clean_tweets['Clean_Tweets'] = clean_tweets['Clean_Tweets'].apply(self.cleaning_tweets).apply(lambda x: self.tokenize_tweets(x.lower()))
+        clean_tweets['Clean_Tweets'] = clean_tweets['Clean_Tweets'].apply(self.remove_stopwords).apply(self.remove_special_char)
 
-        #Raw tweets
-        Rawtweets = pd.DataFrame(data=[tweet.text for tweet in tweets], columns=['Raw_Tweets'])
+        clean_tweets['TxtBlob'] = clean_tweets['Clean_Tweets'].apply(self.txtblob_polarity)
+        clean_tweets['Nltk'] = clean_tweets['Clean_Tweets'].apply(self.nltk_polarity)
 
-        Rawtweets['Polarity_txtblob_Raw_Tweets'] = Rawtweets["Raw_Tweets"].apply(self.txtblob_polarity)
-        Rawtweets['Polarity_vader'] = Rawtweets["Raw_Tweets"].apply(self.nltk_polarity)
-        print(Rawtweets.to_string())
-        print("Text Blob polarity Average: ")
-        print(Rawtweets["Polarity_txtblob_Raw_Tweets"].astype(float).mean())
-        print("Vader polarity Average: ")
-        print( Rawtweets["Polarity_vader"].astype(float).mean())
-        print(" ")
+        return clean_tweets
 
-        tweets = tweepy.Cursor(api.user_timeline, screen_name=user).items(numoftweets)
+    def clean_tweets(self):
+        clean_tweets = self.makingdf('Clean_Tweets')
+        clean_tweets = self.clean_data(clean_tweets)
+        print(clean_tweets.to_string())
 
-        #Clean Tweets
-        Cleantweets = pd.DataFrame(data=[tweet.text for tweet in tweets], columns=['Clean_Tweet'])
+    def search_tweets(self):
+        StockTweets = self.makingdf('Clean_Tweets')
+        Stock = 'HNST'
+        StockTweets['Clean_Tweets'] = StockTweets[StockTweets['Clean_Tweets'].str.contains(pat=Stock, case=False)]
+        StockTweets = StockTweets[StockTweets['Clean_Tweets'].notna()]
 
-        Cleantweets['Clean_Tweet'] = Cleantweets['Clean_Tweet'].apply(self.cleaning_tweets).apply(lambda x: self.tokenize_tweets(x.lower()))
-        Cleantweets['Clean_Tweet'] = Cleantweets['Clean_Tweet'].apply(self.remove_stopwords).apply(self.remove_special_char)
-
-
-        Cleantweets['Polarity'] = Cleantweets['Clean_Tweet'].apply(self.txtblob_polarity)
-        Cleantweets['Polarity_Vader'] = Cleantweets['Clean_Tweet'].apply(self.nltk_polarity)
-
-        print(Cleantweets.to_string())
-        print("Text Blob polarity Average: ")
-        print(Cleantweets["Polarity"].astype(float).mean())
-
-        print("Vader polarity Average: ")
-        print(Cleantweets["Polarity_Vader"].astype(float).mean())
-
-        Polarity_Eval = Rawtweets[['Polarity_txtblob_Raw_Tweets']].copy()
-        Polarity_Eval['Polarity_txtblob_Clean_Tweets'] = Cleantweets[['Polarity']].copy()
-
-
-        Polarity_Eval['TxtBlob Polarity % change after Cleaning Tweets'] = (Polarity_Eval.Polarity_txtblob_Clean_Tweets - Polarity_Eval.Polarity_txtblob_Raw_Tweets) / abs(Polarity_Eval.Polarity_txtblob_Raw_Tweets) * 100
-        print(Polarity_Eval.to_string())
-        print(Polarity_Eval["TxtBlob Polarity % change after Cleaning Tweets"].astype(float).mean())
-
-        Polarity_Eval_vader = Rawtweets[['Polarity_vader']].copy()
-        Polarity_Eval_vader['Polarity_vader_Clean_Tweets'] = Cleantweets[['Polarity_Vader']].copy()
-
-        Polarity_Eval_vader ['Vader Polarity % change after Cleaning Tweets'] = (Polarity_Eval_vader.Polarity_vader_Clean_Tweets - Polarity_Eval_vader.Polarity_vader  ) / abs(Polarity_Eval_vader.Polarity_vader) * 100
-        print(Polarity_Eval_vader.to_string())
-        print(Polarity_Eval_vader["Vader Polarity % change after Cleaning Tweets"].astype(float).mean())
-
-
-
-
-        tweets = tweepy.Cursor(api.user_timeline, screen_name=user, ).items(numoftweets)
-
-        # stock tweets
-        StockTweets = pd.DataFrame(data=[tweet.text for tweet in tweets], columns=['Stock_Tweets'])
-
-        Stock = input("Please enter the Stock name or Ticker symbol that you might want to look at the tweets for (i.e NFLX, AMZN, Netflix or Amazon): ")
-        StockTweets['Stock_Tweets'] = StockTweets[StockTweets['Stock_Tweets'].str.contains(pat=Stock, case=False)]
-        StockTweets = StockTweets[StockTweets['Stock_Tweets'].notna()]
-
-        StockTweets['Stock_Tweets'] = StockTweets['Stock_Tweets'].apply(self.cleaning_tweets).apply(
-            lambda x: self.tokenize_tweets(x.lower()))
-        StockTweets['Stock_Tweets'] = StockTweets['Stock_Tweets'].apply(self.remove_stopwords).apply(
-            self.remove_special_char)
-
-        StockTweets['Polarity'] = StockTweets['Stock_Tweets'].apply(self.txtblob_polarity)
-        StockTweets['Polarity_Vader'] = StockTweets['Stock_Tweets'].apply(self.nltk_polarity)
-
+        StockTweets = self.clean_data(StockTweets)
         print(StockTweets.to_string())
-        print("TxtBlob polarity Average: ")
-        print(StockTweets["Polarity"].astype(float).mean())
-
-        print("Vader polarity Average: ")
-        print(StockTweets["Polarity_Vader"].astype(float).mean())
-
-
 
         stock_Ticker = input("Please enter the Stock Ticker Symbol for the data do be fetched(i.e NFLX): ")
-
-        stockdata = StockData(stock_Ticker)
-
-
-        return Cleantweets
-
+        StockData(stock_Ticker)
 
     def nltk_polarity(self, tweets):
-
         polarity = SentimentIntensityAnalyzer().polarity_scores(tweets)
         return polarity['compound']
 
     def txtblob_polarity(self, tweets):
-
         return TextBlob(tweets).sentiment.polarity
 
 
@@ -151,7 +99,7 @@ class Get_Tweets():
         return tweet
 
     def remove_special_char(self, tweets):
-        # removing stop words
+
         tweeet = [schars for schars in tweets if schars not in string.punctuation]
         tweet = ''.join(tweeet)
         return tweet
