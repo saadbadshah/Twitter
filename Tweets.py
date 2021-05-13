@@ -21,10 +21,17 @@ class Get_Tweets():
         self.search_tweets()
 
     def connect(self):
-        consumer_key = 'Ckf73BSAwbZuyjNQeDAVaxiRJ'
-        consumer_secret = 'VGOblA0kCqCNvmz1gbeazA2T3kXlvgku7u0GU30BDWKNApbuia'
-        access_token = '1309891053999321088-UsjY9LQRnaKVM2xTr2sWaWBBEQYv8E'
-        access_token_secret = '0BnrxeKV788jZnm6lL0CZsMvLFJmIrF0ctOGlsOpG5MQq'
+        #enter your twitter Api consumer key
+        consumer_key = ''
+
+        #enter the consumer secret key
+        consumer_secret = ''
+        
+        #enter the access token
+        access_token = ''
+
+        #enter the access toke secret
+        access_token_secret = ''
 
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(access_token, access_token_secret)
@@ -32,6 +39,7 @@ class Get_Tweets():
         return api
 
     def import_tweets(self):
+        # Enter the use account you want the tweets imported from
         user = 'TheStreet'
         api = self.connect()
         tweets = tweepy.Cursor(api.user_timeline, screen_name=user).items(5)
